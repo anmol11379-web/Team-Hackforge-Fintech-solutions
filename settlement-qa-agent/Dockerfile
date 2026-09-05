@@ -1,34 +1,23 @@
-# Multi-stage Dockerfile for Settlement Q&A Agent
+# Build the React client, then serve it with the FastAPI application.
 
-# 1. Build Client
 FROM node:20-alpine AS client-builder
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm install
+RUN npm ci
 COPY client/ ./
 RUN npm run build
 
-# 2. Production Runner
-FROM node:20-alpine AS runner
+FROM python:3.11-slim
 WORKDIR /app
 
-# Copy server dependencies
-COPY server/package*.json ./server/
-WORKDIR /app/server
-RUN npm install
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code and mock databases
-WORKDIR /app
-COPY server/ ./server/
+COPY main.py ./
 COPY data/ ./data/
-
-# Copy compiled frontend from client-builder
 COPY --from=client-builder /app/client/dist ./client/dist
 
-# Expose port
-EXPOSE 3001
-ENV PORT=3001
-ENV NODE_ENV=production
+ENV PORT=10000
+EXPOSE 10000
 
-WORKDIR /app/server
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}"]

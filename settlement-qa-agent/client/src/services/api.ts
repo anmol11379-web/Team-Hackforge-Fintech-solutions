@@ -1,7 +1,12 @@
 import axios from 'axios';
 import type { ApiResponse, HealthResponse, InvestigationResult } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const configuredApiBase = String(import.meta.env.VITE_API_BASE || '').trim().replace(/\/+$/, '');
+const API_BASE = configuredApiBase
+  ? /\/api$/i.test(configuredApiBase)
+    ? configuredApiBase
+    : `${configuredApiBase}/api`
+  : '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
